@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+
+<launch>
+    <!-- ZED Camera Node-->
+    <arg name="zed_namespace"		    	default="zed" />
+    <arg name="rgb_topic"               	default="rgb/image_rect_color" />
+    <arg name="depth_topic"             	default="depth/depth_registered" />
+    <arg name="camera_info_topic"       	default="rgb/camera_info" />
+    <arg name="depth_camera_info_topic" 	default="depth/camera_info" />
+    <arg name="camera_frame"              	default="zed_camera_center" />
+    <arg name="serial_number"               default="0" />
+    <arg name="resolution"                  default="2" />
+    <arg name="frame_rate"                  default="30" />
+    <arg name="mat_resize_factor"           default="0.2" />
+    <arg name="confidence"                  default="100" />
+    <arg name="max_depth"                   default="6" />
+    <arg name="pose_smoothing"              default="true" />
+    <arg name="spatial_memory"              default="true" />
+    <arg name="floor_alignment"             default="false" />
+    <group ns="$(arg zed_namespace)">
+        <include file="$(find mapping_zed)/launch/zed_camera.launch">
+            <arg name="camera_model"        value="1" />
+            <arg name="serial_number"       value="$(arg serial_number)" />
+            <arg name="resolution"          value="$(arg resolution)" />
+            <arg name="frame_rate"          value="$(arg frame_rate)" />
+            <arg name="verbose"             value="true" />
+            <arg name="mat_resize_factor"   value="$(arg mat_resize_factor)" />
+            <arg name="confidence"          value="$(arg confidence)" />
+            <arg name="max_depth"           value="$(arg max_depth)" />
+            <arg name="pose_smoothing"      value="$(arg pose_smoothing)" />
+            <arg name="spatial_memory"      value="$(arg spatial_memory)" />
+            <arg name="floor_alignment"     value="$(arg floor_alignment)" />
+		    <arg name="rgb_topic"           value="$(arg rgb_topic)" />
+            <arg name="depth_topic"         value="$(arg depth_topic)" />
+            <arg name="rgb_info_topic"      value="$(arg camera_info_topic)" />
+            <arg name="depth_cam_info_topic" value="$(arg depth_camera_info_topic)" />
+            <arg name="base_frame"          value="$(arg camera_frame)" />
+            <arg name="publish_map_tf"	    value="false"/>
+        </include>
+    </group>
+
+    <!-- RTAB-map Node-->
+    <param name="dynamic_time_stamp"        command="$(find mapping_zed)/src/timestamp.sh"/>
+    <include file="$(find rtabmap_ros)/launch/rtabmap.launch">
+      <arg name="rtabmap_args"		        value="--delete_db_on_start" />
+      <arg name="rgb_topic"               	value="/$(arg zed_namespace)/$(arg rgb_topic)" />
+      <arg name="depth_topic"             	value="/$(arg zed_namespace)/$(arg depth_topic)" />
+      <arg name="camera_info_topic"       	value="/$(arg zed_namespace)/$(arg camera_info_topic)" />
+      <arg name="depth_camera_info_topic" 	value="/$(arg zed_namespace)/$(arg depth_camera_info_topic)" />
+      <arg name="frame_id"                  value="zed_camera_center" />
+      <arg name="approx_sync"               value="false" />
+      <arg name="visual_odometry"           value="false" />
+      <arg name="rtabmapviz" 	            value="false" />
+      <arg name="odom_topic"                value="/$(arg zed_namespace)/odom" />
+    </include>
+</launch>
