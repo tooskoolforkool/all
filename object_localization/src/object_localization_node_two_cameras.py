@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-#                               Modules Import
+# Modules Import
 import rospy
 import numpy as np
 import tf
@@ -14,7 +14,6 @@ from mavros_msgs.msg import *
 from mavros_msgs.srv import *
 from darknet_ros_msgs.msg import *
 
-#                               Constants
 # ZED M left camera matrix  (pixel units) - obtained from /zed/left/camera_info
 # message type is sensor_msgs/CameraInfo
 K = [677.0139770507812, 0.0, 635.8870239257812, 0.0, 677.0139770507812,
@@ -24,7 +23,7 @@ fy = K[4] #focal length along the y-axis
 cx = K[2] #principal point - x coordinate
 cy = K[5] #principal point - y coordinate
 
-#                               Main loop
+# Main loop
 def listener():
     #rospy.init_node('listener', anonymous=True)
     box = bounding_boxes()
@@ -32,26 +31,23 @@ def listener():
     rospy.Subscriber('/mavros/local_position/pose', PoseStamped, box.cb_pose)
     rospy.spin()
 
-#                               Library functions
+# Library functions
 def pix2meters(x,y,Z):
     X = ((x - cx) * Z) / fx
     Y = ((y - cy) * Z) / fy
     return X,Y
-#                               Callbacks
+
+# Callbacks
 class bounding_boxes(object):
     def __init__ (self):
         self.detections             =   {"person": 0, "Red": 0, "Green": 0, "Blue": 0}          # contains object names and counter of how many of each object were detected
         self.topic_name             =   {"person": "/detected_object_3d_pos", "Red": "/detected_red_tag", "Green": "/detected_green_tag", "Blue": "/detected_blue_tag"}
-
         self.publisher              =   {}
         for key in self.topic_name:
             self.publisher[key]     =   rospy.Publisher(topic_name[key], PoseStamped, queue_size=10)
-
         self.center                 =   PoseStamped()
         self.pt_transformed         =   PoseStamped()
-
         self.tf_listener            =   tf.TransformListener()
-
         self.center.pose.position.z = 1     # initlizes z to 1 meter in case mavros fails
 
     def cb_bounding_boxes(self,msg):
