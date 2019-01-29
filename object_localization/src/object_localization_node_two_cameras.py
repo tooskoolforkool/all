@@ -25,7 +25,7 @@ cy = K[5] #principal point - y coordinate
 
 # Main loop
 def listener():
-    #rospy.init_node('listener', anonymous=True)
+    rospy.init_node('listener', anonymous=True)
     box = bounding_boxes()
     rospy.Subscriber("/darknet_ros/bounding_boxes", BoundingBoxes, box.cb_bounding_boxes)
     rospy.Subscriber('/mavros/local_position/pose', PoseStamped, box.cb_pose)
@@ -44,7 +44,7 @@ class bounding_boxes(object):
         self.topic_name             =   {"person": "/detected_object_3d_pos", "Red": "/detected_red_tag", "Green": "/detected_green_tag", "Blue": "/detected_blue_tag"}
         self.publisher              =   {}
         for key in self.topic_name:
-            self.publisher[key]     =   rospy.Publisher(topic_name[key], PoseStamped, queue_size=10)
+            self.publisher[key]     =   rospy.Publisher(self.topic_name[key], PoseStamped, queue_size=10)
         self.center                 =   PoseStamped()
         self.pt_transformed         =   PoseStamped()
         self.tf_listener            =   tf.TransformListener()
@@ -54,13 +54,13 @@ class bounding_boxes(object):
         if not msg == None:
             for key in self.detections:
                 self.detections[key] = sum(p.Class == key for p in msg.bounding_boxes)    # counts the number of detections per object
-                    print "Detected", self.detections[key], "occurences of ", key
+                print "Detected", self.detections[key], "occurences of ", key
 
-            for bounding_box in msg.bounding_boxes
+            for bounding_box in msg.bounding_boxes:
                 # person is detected from down looking camera while color tags are detected from down looking camera
                 if bounding_box.Class == "person":
                     self.zed_frame_id = "down_zed_left_camera_optical_frame"
-                else
+                else:
                     self.zed_frame_id = "front_zed_left_camera_optical_frame"
 
                 self.center.header.frame_id = self.zed_frame_id
@@ -86,7 +86,7 @@ class bounding_boxes(object):
 
                 except Exception, e:
                     print e
-                    print "TF Failed to Publish"
+                    print "There was an error either in TF transform or publishing the setpoint"
 
     def cb_pose(self,msg):
         if not msg == None:
