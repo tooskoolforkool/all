@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="serial_number_front"                     default="10027048" />
 
     <!-- Down Looking ZED camera -->
+	<node pkg="tf" type="static_transform_publisher" name="fcu_to_down_zed_map_frame" args="0.25 0 -0.05 0 1.57 0 fcu down_map 10" />
     <group ns="zed_down">
         <include file="$(find zed_wrapper)/launch/zed_down.launch">
             <arg name="serial_number"                   default="$(arg serial_number_down)" />
@@ -43,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </group>
 
     <!-- Front Looking ZED camera -->
+	<node pkg="tf" type="static_transform_publisher" name="fcu_to_front_zed_map_frame" args="0.25 0 -0.05 0 0 0 fcu front_map 10" />
     <group ns="zed_front">
         <include file="$(find zed_wrapper)/launch/zed_front.launch">
             <arg name="serial_number"                   default="$(arg serial_number_front)" />

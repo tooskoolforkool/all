@@ -17,7 +17,7 @@
 	<group ns="$(arg ns)">
 	<include file="$(find mavros)/launch/node.launch">
 	    <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
-	    <arg name="config_yaml" value="$(find local_planner)/resource/px4_config.yaml" />
+	    <arg name="config_yaml" value="$(find object_localization)/resource/px4_config.yaml" />
 	    <arg name="fcu_url" value="$(arg fcu_url)" />
 	    <arg name="gcs_url" value="$(arg gcs_url)" />
 	    <arg name="tgt_system" value="$(arg tgt_system)" />
@@ -30,16 +30,16 @@
 	<include file="$(find object_localization)/launch/object_localization.launch"/>
 	
 	<!-- ZED CAMERA -->
-	<include file="$(find zed_wrapper)/launch/zed_tarek.launch"/>
+	<include file="$(find zed_wrapper)/launch/zed_erl.launch"/>
     
 	<!-- DARKNET -->
-	<include file="$(find darknet_ros)/launch/yolov3_tiny_tarek.launch"/>
+	<include file="$(find darknet_ros)/launch/person.launch"/>
 
 	<!-- Launch rplidar -->
-  	<include file="$(find rplidar_ros)/launch/rplidar.launch"/>
+  	<!-- <include file="$(find rplidar_ros)/launch/rplidar.launch"/>  -->
 
 	<!-- State Machine + Avoidance -->
-	<node pkg="object_localization" type="outdoor_navigation_RPLIDAR_AVOIDANCE.py" name="statemachine_w_avoidance" output="screen"/>
+	<node pkg="object_localization" type="finalv4_with_avoidance_and_indoor.py" name="statemachine_w_avoidance" output="screen"/>
 
 </launch>
 

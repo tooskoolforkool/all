@@ -56,12 +56,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <arg name="rgb_info_topic"                default="rgb/camera_info" />
     <arg name="depth_topic"                   default="depth/depth_registered" />
     <arg name="depth_cam_info_topic"          default="depth/camera_info" />
-    
-    <arg name="mat_resize_factor"             default="1.0" />
+
+    <arg name="mat_resize_factor"             default="0.2" />
     <arg name="confidence"                    default="100" />
-    <arg name="max_depth"                     default="10.0" />
-    <arg name="pose_smoothing"                default="false" />
-    <arg name="spatial_memory"                default="false" />
+    <arg name="max_depth"                     default="6.0" />
+    <arg name="pose_smoothing"                default="true" />
+    <arg name="spatial_memory"                default="true" />
     <arg name="floor_alignment"               default="false" />
 
     <node name="zed_wrapper_node" pkg="zed_wrapper" type="zed_wrapper_node" output="screen" required="true"><!-- launch-prefix="valgrind" -->
