@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-#Modules import
+# Modules Import
 import rospy
 import numpy as np
 import tf
@@ -14,122 +14,88 @@ from mavros_msgs.msg import *
 from mavros_msgs.srv import *
 from darknet_ros_msgs.msg import *
 
-#==============================================================================
-# 
-#                               Constants
-# 
-#==============================================================================
-
 # ZED M left camera matrix  (pixel units) - obtained from /zed/left/camera_info
 # message type is sensor_msgs/CameraInfo
-K = [677.0139770507812, 0.0, 635.8870239257812, 0.0, 677.0139770507812, 
-     373.62017822265625, 0.0, 0.0, 1.0]
+K = [677.0139770507812, 0.0, 635.8870239257812, 0.0, 677.0139770507812,
+    373.62017822265625, 0.0, 0.0, 1.0]
 fx = K[0] #focal length along the x-axis
 fy = K[4] #focal length along the y-axis
 cx = K[2] #principal point - x coordinate
 cy = K[5] #principal point - y coordinate
 
-                         
-#==============================================================================
-# 
-#                               Main loop
-# 
-#==============================================================================
-
+# Main loop
 def listener():
     rospy.init_node('listener', anonymous=True)
-    box = bounding_boxes()    
+    box = bounding_boxes()
     rospy.Subscriber("/darknet_ros/bounding_boxes", BoundingBoxes, box.cb_bounding_boxes)
     rospy.Subscriber('/mavros/local_position/pose', PoseStamped, box.cb_pose)
     rospy.spin()
 
-
-#==============================================================================
-# 
-#                               Library functions
-# 
-#==============================================================================
+# Library functions
 def pix2meters(x,y,Z):
-#==============================================================================
-#     x and y are the center coordinates of the bounding box
-#     Z is the depth at x and y
-#     This function returns x and y converted from pixels to meters
-#                in the camera frame using the camera matrix
-#==============================================================================   
-    X = ((x-cx)*Z)/fx
-    Y = ((y-cy)*Z)/fy
+    X = ((x - cx) * Z) / fx
+    Y = ((y - cy) * Z) / fy
     return X,Y
 
-
-#==============================================================================
-#                   
-#                               Callbacks
-# 
-#==============================================================================
+# Callbacks
 class bounding_boxes(object):
-    
     def __init__ (self):
-        
-        self.center = PoseStamped()
-        self.pt_transformed = PoseStamped()        
+        self.detections             =   {"person": 0, "Red": 0, "Green": 0, "Blue": 0}          # contains object names and counter of how many of each object were detected
+        self.topic_name             =   {"person": "/detected_object_3d_pos", "Red": "/detected_red_tag", "Green": "/detected_green_tag", "Blue": "/detected_blue_tag"}
+        self.publisher              =   {}
+        for key in self.topic_name:
+            self.publisher[key]     =   rospy.Publisher(self.topic_name[key], PoseStamped, queue_size=10)
+        self.center                 =   PoseStamped()
+        self.pt_transformed         =   PoseStamped()
+        self.tf_listener            =   tf.TransformListener()
+        self.center.pose.position.z = 1     # initlizes z to 1 meter in case mavros fails
 
-        self.confidence = 0.0
-        self.object_class = None
-        
-        self.tf_listener = tf.TransformListener()
-        self.sp_pub = rospy.Publisher("/detected_object_3d_pos", PoseStamped, queue_size=10)
-        
-        #set default value for z: 1 meter
-        self.center.pose.position.z = 1        
-        
     def cb_bounding_boxes(self,msg):
-              
-        if not msg == None:# and msg.image_header.frame_id == "zed_left_camera_optical_frame":
-            self.center.header.frame_id = "zed_left_camera_optical_frame"
-            tmp_1 = sum(p.Class == "person" for p in msg.bounding_boxes)
-            if tmp_1 > 0: #or tmp_3 > 0:
-                tmp2 = max(msg.bounding_boxes, key=lambda x: x.probability)
-                if tmp2.Class == "person": # or tmp2.Class == "kite":                
-                    print "***************************************************"                
-                    print "Class = ", self.object_class
-                    print "Confidence = ", self.confidence
-                    print "Found missing worker at time {}".format(rospy.Time.now())
-                
-                    self.center.pose.position.x = (tmp2.xmin+tmp2.xmax)/2
-                    self.center.pose.position.y = (tmp2.ymin+tmp2.ymax)/2
-                    self.confidence = tmp2.probability
-                    self.object_class = tmp2.Class
-                    
-		    # below, use either default values or uncomment #self.center.pose.position.z if you want the actual height of the drone
-                    XY = pix2meters(self.center.pose.position.x,self.center.pose.position.y,self.center.pose.position.z) #self.center.pose.position.z)
-            
-                    self.center.pose.position.x = XY[0]
-                    self.center.pose.position.y = XY[1]
+        if not msg == None:
+            for key in self.detections:
+                self.detections[key] = sum(p.Class == key for p in msg.bounding_boxes)    # counts the number of detections per object
+                print "Detected", self.detections[key], "occurences of ", key
 
-                
-                    try:
-                        self.tf_listener.waitForTransform("/zed_left_camera_optical_frame", "/local_origin", rospy.Time(), rospy.Duration(20.0))
-                        self.pt_transformed = self.tf_listener.transformPose("/local_origin", self.center)
-                        self.sp_pub.publish(self.pt_transformed)
-                        print "center coordinates in /local_origin frame:"
-                        print self.pt_transformed
-                    except Exception, e:
-                        print e                
-                        print "fail"
-	#elif not msg == None and msg.image_header.frame_id == "something_else":
-		#pass
-    
+            for bounding_box in msg.bounding_boxes:
+                # person is detected from down looking camera while color tags are detected from down looking camera
+                if bounding_box.Class == "person":
+                    self.zed_frame_id = "down_zed_left_camera_optical_frame"
+                else:
+                    self.zed_frame_id = "front_zed_left_camera_optical_frame"
+
+                self.center.header.frame_id = self.zed_frame_id
+                self.confidence = bounding_box.probability
+                self.object_class = bounding_box.Class
+
+                tmp_x = (bounding_box.xmin + bounding_box.xmax) / 2
+                tmp_y = (bounding_box.ymin + bounding_box.ymax) / 2
+
+                self.center.pose.position.x, self.center.pose.position.y = pix2meters(tmp_x, tmp_y, self.center.pose.position.z)
+
+                print "*******************************************************"
+                print "Class = ", self.object_class
+                print "Confidence = ", self.confidence
+                #print "Found missing worker at time {}".format(rospy.Time.now())
+
+                try:
+                    self.tf_listener.waitForTransform(self.zed_frame_id, "/local_origin", rospy.Time(), rospy.Duration(1.0))
+                    self.pt_transformed = self.tf_listener.transformPose("/local_origin", self.center)
+                    self.publisher[self.object_class].publish(self.pt_transformed)
+                    print "Center coordinates in /local_origin frame:"
+                    print self.pt_transformed
+
+                except Exception, e:
+                    print e
+                    print "There was an error either in TF transform or publishing the setpoint"
+
     def cb_pose(self,msg):
         if not msg == None:
             self.center.pose.position.z = msg.pose.position.z
-
 
 if __name__ == '__main__':
     try:
         print "main"
         listener()
-        
+
     except rospy.ROSInterruptException:
         print "exit"
-        
-        
